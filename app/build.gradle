@@ -1,0 +1,122 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.whl.avplayer'
+    compileSdk 32
+
+    defaultConfig {
+        applicationId "com.whl.avplayer"
+        minSdk 21
+        targetSdk 32
+        versionCode 1
+        versionName "1.0"
+        resConfigs "zh", "en"
+
+        externalNativeBuild {
+            cmake {
+                cppFlags ''
+                abiFilters "armeabi-v7a" // CMakeLists.txt 指定编译的是此平台
+            }
+        }
+        ndk{
+            abiFilters("armeabi-v7a")  // apk/lib/libnative-lib.so 指定编译的是此平台
+        }
+    }
+
+    //签名配置
+    signingConfigs {
+        release {
+            storeFile file("../fmod.jks")
+            storePassword "fmodfmod"
+            keyAlias "fmod"
+            keyPassword "fmodfmod"
+        }
+        debug {
+            storeFile file('/Users/wanghailong/githubrep/Fmod/fmod.jks')
+            storePassword 'fmodfmod'
+            keyAlias 'fmod'
+            keyPassword 'fmodfmod'
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path file('src/main/cpp/CMakeLists.txt')
+            version '3.18.1'
+        }
+    }
+
+    buildTypes {
+        release {
+            debuggable false
+            jniDebuggable false
+            //禁止将pgn转为webp
+            crunchPngs false
+            multiDexEnabled true
+            //代码混淆
+            minifyEnabled false
+            //是否要启用资源压缩
+            shrinkResources false
+            //添加一个变量
+//            buildConfigField "int", "ENV_TYPE", "4"
+            signingConfig signingConfigs.release
+//            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+
+        debug {
+            //
+            debuggable true
+            //是否允许jni调试
+            jniDebuggable true
+            multiDexEnabled true
+            //禁止将pgn转为webp
+            crunchPngs false
+            //是否要启用资源压缩
+            shrinkResources false
+            //代码混淆
+            minifyEnabled false
+//            signingConfig signingConfigs.release
+        }
+    }
+    android.applicationVariants.all { variant ->
+        variant.outputs.all {
+            if (variant.buildType.name == 'release') {
+                // 输出apk名称为
+                outputFileName = "FFmpeg_android_V${defaultConfig.versionName}_release.apk"
+            } else if (variant.buildType.name == 'debug') {
+                // 输出apk名称为
+                outputFileName = "FFmpeg_android.apk"
+            }
+        }
+    }
+
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    buildFeatures {
+        viewBinding true
+    }
+}
+
+dependencies {
+
+    implementation 'androidx.core:core-ktx:1.7.0'
+    implementation 'androidx.appcompat:appcompat:1.4.1'
+    implementation 'com.google.android.material:material:1.5.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.3'
+}
