@@ -25,11 +25,14 @@ extern "C" {
 class AVController {
 private:
     char *p_av_path = nullptr;
-    AVFormatContext *avFormatContext = nullptr;
     pthread_t tid_prepare;
+    pthread_t tid_play;
     AChannel *audio_channel = nullptr;
     VChannel *video_channel = nullptr;
+    AVFormatContext *avFormatContext = nullptr;
     JNICallbackHelper *jniCallbackHelper = nullptr;
+    bool isPlaying = 0;
+    RenderCallback renderCallback;
 public:
     AVController(const char *pAvPath, JNICallbackHelper *jniCallbackHelper);
 
@@ -40,6 +43,10 @@ public:
     void findStream();
 
     void play();
+
+    void avPacketPushQueue();
+
+    void setRenderCallback(RenderCallback renderCallback);
 
 };
 

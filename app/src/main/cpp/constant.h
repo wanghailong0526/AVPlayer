@@ -4,6 +4,9 @@
 
 #ifndef AVPLAYER_CONSTANT_H
 #define AVPLAYER_CONSTANT_H
+
+#include "SafeQueue.h"
+
 #define THREAD_MAIN 1
 #define THREAD_CHILD 2
 // 错误代码

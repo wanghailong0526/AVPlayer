@@ -4,6 +4,9 @@ import android.graphics.Color
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.view.Surface
+import android.view.SurfaceView
+import android.view.View
 import com.whl.avplayer.databinding.ActivityMainBinding
 import java.io.File
 
@@ -11,18 +14,22 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private var mAVController: AVController? = null
+    private var surfaceView: SurfaceView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        surfaceView = binding.surfaceView;
 
-        val pathMp4: String = this.getExternalFilesDir("").toString().plus(File.separator).plus("test.mp4")
+//        val pathMp4: String = this.getExternalFilesDir("").toString().plus(File.separator).plus("test.mp4")
+        val pathMp4: String =
+            this.getExternalFilesDir("").toString().plus(File.separator).plus("demo.mp4")
         Log.e("whl ***", pathMp4)
 
-        
         mAVController = AVController(pathMp4)
         mAVController?.let { lifecycle.addObserver(it) }//mAvplayer 不为空 调用 let 里的方法
+        mAVController?.setSurfaceView(surfaceView!!)
         mAVController?.setOnPrePareListener(object : AVController.OnPrepareListener {
             override fun onPrepare() {
                 runOnUiThread {
@@ -40,5 +47,9 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
+        binding.tvPlay.setOnClickListener {
+            mAVController?.clickPlay();
+        }
     }
+
 }

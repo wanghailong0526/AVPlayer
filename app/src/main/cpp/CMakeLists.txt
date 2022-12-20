@@ -10,12 +10,13 @@ set(RTMP ${CMAKE_SOURCE_DIR}/rtmp) # rtmp的路径
 
 include_directories(${FFMPEG}/include) # 导入ffmpeg的头文件
 
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -L${FFMPEG}/libs/${CMAKE_ANDROID_ARCH_ABI}") # ffmpeg库指定
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${FFMPEG}/libs/${CMAKE_ANDROID_ARCH_ABI}") # ffmpeg库指定
 
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -L${RTMP}/libs/${CMAKE_ANDROID_ARCH_ABI}") # rtmp库指定
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${RTMP}/libs/${CMAKE_ANDROID_ARCH_ABI}") # rtmp库指定
 
 # 批量导入 源文件
 file(GLOB src_files *.cpp)
+include_directories(${CMAKE_SOURCE_DIR}/*.h)
 
 add_library(
         native-lib # 总库libnative-lib.so

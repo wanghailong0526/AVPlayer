@@ -5,9 +5,15 @@
 #ifndef AVPLAYER_ACHANNEL_H
 #define AVPLAYER_ACHANNEL_H
 
+#include "BaseChannel.h"
 
-class AChannel {
+class AChannel : public BaseChannel {
+public:
+    AChannel(int streamIndex, AVCodecContext *avCodecContext);
+    ~AChannel();
 
+    void play();
+    void stop();
 };
 
 

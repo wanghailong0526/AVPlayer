@@ -63,15 +63,15 @@ void AVController::findStream() {
         return;
     }
     //TODO 第三步 根据流的个数来找音频、视频流; AVFormatContext.nb_streams:媒体文件中的流的个数
-    int i = 0;
-    for (; i < avFormatContext->nb_streams; ++i) {
+    int stream_index = 0;
+    for (; stream_index < avFormatContext->nb_streams; ++stream_index) {
         //TODO 第四步 获取媒体流 音频或视频
-        AVStream *pStream = avFormatContext->streams[i];
+        AVStream *avstream = avFormatContext->streams[stream_index];
         //TODO 第五步 从上面的流中获取编解码的参数 后面的编码、解码都要用到(如:视频的宽高)
-        AVCodecParameters *pAVCodecParameters = pStream->codecpar;
+        AVCodecParameters *avcodecParameters = avstream->codecpar;
         //TODO 第六步 根据上面的参数获取编解码器
-        AVCodec *pAvCodec = avcodec_find_decoder(pAVCodecParameters->codec_id);
-        if (!pAvCodec) {//如果是 NULL 通知上层
+        AVCodec *avCodec = avcodec_find_decoder(avcodecParameters->codec_id);
+        if (!avCodec) {//如果是 NULL 通知上层
             //通知上层 查找解码器失败
             if (jniCallbackHelper) {
                 jniCallbackHelper->onError(THREAD_CHILD, ERR_CAN_NOT_FIND_DECODER, "");
@@ -79,15 +79,15 @@ void AVController::findStream() {
             return;
         }
         //TODO 第七步 根据上面的编解码器生成编解码器的上下文
-        AVCodecContext *pAvCodecContext = avcodec_alloc_context3(pAvCodec);
-        if (!pAvCodecContext) { // pAvCodecContext == NULL_失败  !=NULL_成功
+        AVCodecContext *avCodecContext = avcodec_alloc_context3(avCodec);
+        if (!avCodecContext) { // pAvCodecContext == NULL_失败  !=NULL_成功
             if (jniCallbackHelper) {
                 jniCallbackHelper->onError(THREAD_CHILD, ERR_AVCODEC_ALLOC_CONTEXT_FAIL, "");
             }
             return;
         }
-        //TODO 第八步 上面的 pAvCodecContext 是空的，需要把 pParameters 拷贝到 pAvCodecContext 里
-        r = avcodec_parameters_to_context(pAvCodecContext, pAVCodecParameters);
+        //TODO 第八步 上面的 pAvCodecContext 是空的，需要把 Parameters 拷贝到 AvCodecContext 里
+        r = avcodec_parameters_to_context(avCodecContext, avcodecParameters);
         if (r < 0) {//失败
             if (jniCallbackHelper) {
                 jniCallbackHelper->onError(THREAD_CHILD, ERR_AVCODEC_PARAMETERS_TO_CONTEXT_FIAL,
@@ -96,18 +96,19 @@ void AVController::findStream() {
             return;
         }
         //TODO 第九步 打开解码器
-        r = avcodec_open2(pAvCodecContext, pAvCodec, nullptr);
+        r = avcodec_open2(avCodecContext, avCodec, nullptr);
         if (r) {// 0_成功 非0_失败
             if (jniCallbackHelper) {
                 jniCallbackHelper->onError(THREAD_CHILD, ERR_AVCODEC_OPEN_FAIL, av_err2str(r));
             }
             return;
         }
-        //TODO 第十步 从编解码参数中获取流的类型 pavcodecParameters.codec_type
-        if (pAVCodecParameters->codec_type == AVMediaType::AVMEDIA_TYPE_VIDEO) {//视频流
-            video_channel = new VChannel();
-        } else if (pAVCodecParameters->codec_type == AVMediaType::AVMEDIA_TYPE_AUDIO) {//音频流
-            audio_channel = new AChannel();
+        //TODO 第十步 从编解码参数中获取流的类型 avcodecParameters.codec_type
+        if (avcodecParameters->codec_type == AVMediaType::AVMEDIA_TYPE_VIDEO) {//视频流
+            video_channel = new VChannel(stream_index, avCodecContext);
+            video_channel->setRenderCallback(renderCallback);
+        } else if (avcodecParameters->codec_type == AVMediaType::AVMEDIA_TYPE_AUDIO) {//音频流
+            audio_channel = new AChannel(stream_index, avCodecContext);
         }
     }
 
@@ -124,8 +125,54 @@ void AVController::findStream() {
     }
 }
 
-void AVController::play() {
-
+void *task_stream2queue(void *args) {
+    auto *avController = static_cast<AVController *>(args);
+    avController->avPacketPushQueue();
+    return nullptr;
 }
+
+/**
+ * 把 AVPacket 放到 queue 里去不区分音频频
+ */
+void AVController::avPacketPushQueue() {
+    while (isPlaying) {
+        //取出压缩包
+        AVPacket *packet = av_packet_alloc();
+        int r = av_read_frame(avFormatContext, packet);
+        if (r == 0) {//成功
+            if (video_channel && video_channel->stream_index == packet->stream_index) {
+                video_channel->queueAVPacket.push(packet);
+            } else if (audio_channel && audio_channel->stream_index == packet->stream_index) {
+                audio_channel->queueAVPacket.push(packet);
+            }
+        } else if (r == AVERROR_EOF) {//averror_eof 文件尾
+            //TODO 表示读完了，不代表播放完成了，先放在这儿
+        } else {//否则结束当前循环
+            break;
+        }
+    }
+    isPlaying = 0;
+    video_channel->stop();
+    audio_channel->stop();
+}
+
+void AVController::play() {
+    isPlaying = 1;//设置为播放状态
+
+    if (video_channel) {
+        video_channel->play();//视频播放
+    }
+
+    if (audio_channel) {
+        audio_channel->play();//音频播放
+    }
+
+    pthread_create(&tid_play, nullptr, task_stream2queue, this);
+}
+
+void AVController::setRenderCallback(RenderCallback renderCallback) {
+    this->renderCallback = renderCallback;
+}
+
 
 

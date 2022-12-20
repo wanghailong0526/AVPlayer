@@ -3,3 +3,20 @@
 //
 
 #include "AChannel.h"
+
+AChannel::AChannel(int streamIndex, AVCodecContext *avCodecContext) : BaseChannel(streamIndex,
+                                                                                  avCodecContext) {
+
+}
+
+AChannel::~AChannel() noexcept {
+
+}
+
+void AChannel::play() {
+
+}
+
+void AChannel::stop() {
+
+}

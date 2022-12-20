@@ -1,5 +1,8 @@
 package com.whl.avplayer
 
+import android.view.Surface
+import android.view.SurfaceHolder
+import android.view.SurfaceView
 import androidx.lifecycle.*
 
 /**
@@ -11,7 +14,7 @@ import androidx.lifecycle.*
  *
  */
 //constructor 可以省略
-class AVController constructor(avPath: String) : LifecycleEventObserver {
+class AVController constructor(avPath: String) : LifecycleEventObserver, SurfaceHolder.Callback {
     //object 对象表达式或对象声明
     //companion object 表示静态方法
     companion object {
@@ -33,13 +36,14 @@ class AVController constructor(avPath: String) : LifecycleEventObserver {
     private var mOnErrorListener: OnErrorListener? = null //native 层 解封装出现错误的回调
     private var mNativeObj: Long? = null// native 层的 AVPlayer 地址
     private var mAVPath: String = avPath//视频路径或直播地址
+    private var surfaceHolder: SurfaceHolder? = null;
 
     fun setAVPath(avPath: String) {
         mAVPath = avPath
     }
 
-    fun getAVPath(): String {
-        return mAVPath
+    fun getAVPath() {
+        mAVPath
     }
 
     fun setOnPrePareListener(onPrepareListener: OnPrepareListener) {
@@ -85,7 +89,7 @@ class AVController constructor(avPath: String) : LifecycleEventObserver {
         when (event) {
             //activity 执行 onResume 方法时 执行 prepareNative 方法
             Lifecycle.Event.ON_RESUME -> {
-                mNativeObj = mAVPath?.let { prepareNative(it) }
+//                mNativeObj = mAVPath?.let { prepareNative(it) }
             }
             Lifecycle.Event.ON_STOP -> {
                 mNativeObj?.let { stop(it) }
@@ -99,10 +103,34 @@ class AVController constructor(avPath: String) : LifecycleEventObserver {
         }
     }
 
+    //点击播放
+    fun clickPlay() {
+        surfaceHolder?.let { setSurfaceNative(it.surface) }
+        mNativeObj = mAVPath?.let { prepareNative(it) }
+    }
+
+    fun setSurfaceView(surfaceView: SurfaceView) {
+        surfaceHolder?.removeCallback(this)
+        surfaceHolder = surfaceView.holder
+        surfaceHolder?.addCallback(this)
+    }
+
+    override fun surfaceCreated(holder: SurfaceHolder) {
+    }
+
+    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+        setSurfaceNative(holder.surface)
+    }
+
+    override fun surfaceDestroyed(holder: SurfaceHolder) {
+    }
+
+
     private external fun prepareNative(avPath: String): Long
     private external fun play(nativeObj: Long)
     private external fun stop(nativeObj: Long)
     private external fun destory(nativeObj: Long)
+    private external fun setSurfaceNative(surface: Surface)
 }
 
 
